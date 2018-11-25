@@ -6,7 +6,7 @@ import { Router } from '@angular/router';
 
 import { Store } from '@ngrx/store';
 import { ActivarLoadingAction, DesactivarLoadingAction } from '../shared/ui.actions';
-import { SetUserAction } from './auth.actions';
+import { SetUserAction, UnsetUserAction } from './auth.actions';
 import { AppState } from '../app.reducer';
 
 import { map } from 'rxjs/operators'
@@ -15,12 +15,14 @@ import { Subscription } from 'rxjs';
 import Swal from 'sweetalert2';
 
 import { User } from './user.model';
+import { UnsetItemsActions } from '../ingreso-egreso/ingreso-egreso.actions';
 
 @Injectable({
   providedIn: 'root'
 })
 export class AuthService {
   private userSuscription: Subscription = new Subscription();
+  private usuario: User;
 
   constructor(private afAuth: AngularFireAuth,
               private router: Router,
@@ -33,17 +35,16 @@ export class AuthService {
          this.userSuscription = this.afDB.doc(`${fbUser.uid}/usuario`).valueChanges()
             .subscribe( ( usuarioObj: any ) => {
               const newUser = new User(usuarioObj);
-              this.store.dispatch( new SetUserAction(newUser));       
-              console.log(newUser);
-                     
+              this.store.dispatch( new SetUserAction(newUser));
+              this.usuario = newUser;
             });
       }else {
+        this.usuario = null;
         this.userSuscription.unsubscribe();
       }
       
     })
   }
-
 
   crearUsuario(nombre:string, email:string , password:string){
     this.store.dispatch(new ActivarLoadingAction());
@@ -82,6 +83,7 @@ export class AuthService {
   }
 
   logOut(){
+    this.store.dispatch(new UnsetUserAction() );
     this.router.navigate(['/login']);
     this.afAuth.auth.signOut();
 
@@ -94,5 +96,11 @@ export class AuthService {
       }
       return fbUser != null
     }));
+  }
+
+  getUser(){
+    console.log(this.usuario);
+    
+    return {...this.usuario};
   }
 }
